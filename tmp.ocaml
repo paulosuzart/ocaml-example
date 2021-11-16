@@ -1,33 +1,34 @@
 module CharSet = Set.Make(Char)
 
-module type CHAR_CONTAINER =
+module type CONTAINER =
   sig
+    type element 
     type container
-    val contains : container -> char -> bool
-    val add : container -> char -> container
+    val contains : container -> element -> bool
+    val add : container -> element -> container
     val empty : unit -> container
   end
 
-module HashTblContainer = 
-  struct
-    type container = (char, char) Hashtbl.t
-  
-    let contains con c = Hashtbl.find_opt con c |> Option.is_some
-    let add con c = Hashtbl.replace con c c; con
-    let empty () = Hashtbl.create 10
-  end
-
-module SetContainer = 
+module SetContainer : (CONTAINER with type element = char) = 
   struct
     module CharSet = Set.Make(Char)
+    type element = char
     type container = CharSet.t
 
-    let contains con c = CharSet.find_opt c con |> Option.is_some
+    let contains con c = 
+      match CharSet.find_opt c con with 
+        Some _ -> true
+      | None -> false
+
     let add con c = CharSet.add c con
+
     let empty () = CharSet.empty
   end
 
-let solve3 word (module M : CHAR_CONTAINER) =
+(* let mySet : (module CONTAINER) = (module SetContainer)
+module F = (val mySet) *)
+
+let solve3 word (module M : CONTAINER with type element = char) =
   let rec solve2 con word' = match word'() with
       Seq.Cons (c, _) when M.contains con c -> Some c
     | Seq.Cons (c, xs) -> solve2 (M.add con c) xs
@@ -36,18 +37,40 @@ let solve3 word (module M : CHAR_CONTAINER) =
   solve2 empty word_seq
   
 
+let setSolve word =
+  let mySet = (module SetContainer : CONTAINER with type element = char) in
+  solve3 word mySet
+
+
+(* Adds a char to the Set and returns the new instance and a 
+bool indicating if the insertion suceeded *)
+let add achar target =
+    let added = CharSet.add achar target in
+    target <> added, added
+
+let add_ht c ht = 
+  let lbefore = Hashtbl.length ht in
+  Hashtbl.replace ht c c;
+  lbefore < Hashtbl.length ht, ht
+
+let rec solve' word' container add_fn = match word'() with
+    Seq.Cons (c, xs) -> 
+        (match add_fn c container with
+          (true, s)  -> solve' xs s add_fn
+          | _ -> Some c)
+  | _ -> None
+
+
 (* Finds the first repeated character in a word usingn a set *)
 let solve word =
   Dream.info (fun log -> log "Solving [%s] using set" word);
-  let mySet = (module SetContainer : CHAR_CONTAINER) in
-  solve3 word mySet
-
+  setSolve word
 
 (* Finds the first repeated character in a word using a hash table *)
 let solve_ht word =
   Dream.info (fun log -> log "Solving [%s] using hash table" word);
-  let myHtable = (module HashTblContainer : CHAR_CONTAINER) in
-  solve3 word myHtable
+  let size = String.length word and seq = String.to_seq word in
+  solve' seq (Hashtbl.create size) add_ht
 
 (* Finds the repetition using Set or Hashtable *)
 let res w s = 
