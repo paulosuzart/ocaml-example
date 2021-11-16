@@ -1,5 +1,3 @@
-module CharSet = Set.Make(Char)
-
 module type CHAR_CONTAINER =
   sig
     type container
@@ -27,30 +25,30 @@ module SetContainer =
     let empty () = CharSet.empty
   end
 
-let solve3 word (module M : CHAR_CONTAINER) =
-  let rec solve2 con word' = match word'() with
+let solve word (module M : CHAR_CONTAINER) =
+  let rec solve' con word' = match word'() with
       Seq.Cons (c, _) when M.contains con c -> Some c
-    | Seq.Cons (c, xs) -> solve2 (M.add con c) xs
+    | Seq.Cons (c, xs) -> solve' (M.add con c) xs
     | Nil -> None in
   let empty = M.empty () and word_seq = String.to_seq word in
-  solve2 empty word_seq
+  solve' empty word_seq
   
 (* Finds the first repeated character in a word usingn a set *)
-let solve word =
+let solve_set word =
   Dream.info (fun log -> log "Solving [%s] using set" word);
   let mySet = (module SetContainer : CHAR_CONTAINER) in
-  solve3 word mySet
+  solve word mySet
 
 (* Finds the first repeated character in a word using a hash table *)
 let solve_ht word =
   Dream.info (fun log -> log "Solving [%s] using hash table" word);
   let myHtable = (module HashTblContainer : CHAR_CONTAINER) in
-  solve3 word myHtable
+  solve word myHtable
 
 (* Finds the repetition using Set or Hashtable *)
 let res w s = 
   let res' = match s with
-      Some "set" -> solve w
+      Some "set" -> solve_set w
     | _ -> solve_ht w in
   match res' with
     Some c -> Printf.sprintf "Found %c" c
