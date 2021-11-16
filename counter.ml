@@ -35,13 +35,11 @@ let solve3 word (module M : CHAR_CONTAINER) =
   let empty = M.empty () and word_seq = String.to_seq word in
   solve2 empty word_seq
   
-
 (* Finds the first repeated character in a word usingn a set *)
 let solve word =
   Dream.info (fun log -> log "Solving [%s] using set" word);
   let mySet = (module SetContainer : CHAR_CONTAINER) in
   solve3 word mySet
-
 
 (* Finds the first repeated character in a word using a hash table *)
 let solve_ht word =
